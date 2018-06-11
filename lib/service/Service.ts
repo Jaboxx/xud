@@ -103,7 +103,6 @@ class Service {
       };
 
     } catch (err) {
-      this.logger.error(`Raiden error: ${err}`);
       info.raiden = {
         error: String(err),
       };

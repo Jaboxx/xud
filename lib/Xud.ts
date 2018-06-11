@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import Logger from './Logger';
 import Config from './Config';
 import DB from './db/DB';
@@ -77,6 +78,12 @@ class Xud {
     } catch (err) {
       this.logger.error(err);
     }
+  }
+
+  public static getVersion = (): string => {
+    const packageBuffer = fs.readFileSync(path.join(__dirname, '..', 'package.json'));
+    const packageJson = JSON.parse(packageBuffer.toString());
+    return packageJson.version;
   }
 
   /**

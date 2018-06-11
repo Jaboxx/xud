@@ -19,8 +19,9 @@ type PoolConfig = {
 
 /** A pool of peers for handling all network activity */
 class Pool extends EventEmitter {
+  public  peers: PeerList = new PeerList();
+
   private hosts: HostList;
-  private peers: PeerList = new PeerList();
   private server: Server = net.createServer();
   private logger: Logger = Logger.p2p;
   private connected: boolean = false;

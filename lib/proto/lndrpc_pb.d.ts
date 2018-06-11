@@ -889,7 +889,8 @@ export class ListChannelsResponse extends jspb.Message {
 
 export namespace ListChannelsResponse {
   export type AsObject = {
-    channelsList: Array<Channel.AsObject>,
+    // Manually changed 'channelsList' to 'channels'
+    channels: Array<Channel.AsObject>,
   }
 }
 

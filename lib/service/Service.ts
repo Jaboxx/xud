@@ -4,8 +4,8 @@ import Pool from '../p2p/Pool';
 import OrderBook from '../orderbook/OrderBook';
 import LndClient from '../lndclient/LndClient';
 import RaidenClient, { TokenSwapPayload } from '../raidenclient/RaidenClient';
-import { GetInfoResponse } from '../proto/lndrpc_pb';
 import { OwnOrder } from '../types/orders';
+import Xud from '../Xud';
 
 /**
  * The components required by the API service layer.
@@ -40,11 +40,76 @@ class Service {
   }
 
   /**
-   * Placeholder for a method to return general information about an Exchange Union node.
+   * Get general information about this Exchange Union node.
    */
   public getInfo = async () => {
-    const lnd = await this.lndClient.getInfo();
-    return { lnd };
+    const info: any = {};
+
+    info.version = Xud.getVersion();
+
+    const peers = this.pool.peers;
+    const pairs = await this.orderBook.getPairs();
+    info.peers = peers.length();
+    info.pairs = pairs.length;
+
+    let peerOrdersCount: number = 0;
+    let ownOrdersCount: number = 0;
+    for (const key in pairs) {
+      const pair = pairs[key];
+
+      const orders = await this.orderBook.getOrders(pair.id, 0);
+      const ownOrders = await this.orderBook.getOwnOrders(pair.id, 0);
+
+      peerOrdersCount += orders.buyOrders.length + orders.sellOrders.length;
+      ownOrdersCount += ownOrders.buyOrders.length + ownOrders.sellOrders.length;
+    }
+
+    info.orders = {
+      peer: peerOrdersCount,
+      own: ownOrdersCount,
+    };
+
+    try {
+      const lnd = await this.lndClient.getInfo();
+      const channels = await this.lndClient.listChannels();
+
+      info.lnd = {
+        channels: {
+          active: lnd.numActiveChannels,
+          inactive: channels.channels.length - lnd.numActiveChannels,
+          pending: lnd.numPendingChannels,
+        },
+        blockheight: lnd.blockHeight,
+        uris: lnd.urisList,
+        version: lnd.version,
+      };
+
+    } catch (err) {
+      this.logger.error(`LND error: ${err}`);
+      info.lnd = {
+        error: String(err),
+      };
+    }
+
+    try {
+      const address = await this.raidenClient.getAddress();
+      const channels = await this.raidenClient.getChannels();
+
+      info.raiden = {
+        address,
+        channels: channels.length,
+        // Hardcoded for now until they expose it to their API
+        version: 'v0.3.0',
+      };
+
+    } catch (err) {
+      this.logger.error(`Raiden error: ${err}`);
+      info.raiden = {
+        error: String(err),
+      };
+    }
+
+    return info;
   }
 
   /**
